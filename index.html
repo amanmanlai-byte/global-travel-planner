@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+<html lang="zh-Hans">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>全球旅游规划助手</title>
+    <!-- 引入 Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- 设置默认字体为 Inter，并启用中文友好字体 -->
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap');
+        body {
+            font-family: 'Inter', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+            background-color: #f7f9fb;
+        }
+        /* 针对下拉框中的大量选项，确保滚动友好 */
+        #countrySelect {
+            max-height: 400px; /* 限制高度，使其看起来更像一个输入框而不是一个巨大的列表 */
+            appearance: none; /* 移除默认的系统样式 */
+            background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='none' stroke='%236B7280'%3e%3cpath d='M6 8l4 4 4-4' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3e%3c/svg%3e");
+            background-repeat: no-repeat;
+            background-position: right 0.75rem center;
+            background-size: 1.5em 1.5em;
+            padding-right: 2.5rem; /* 为图标留出空间 */
+        }
+    </style>
+</head>
+<body class="min-h-screen flex items-start justify-center p-4 sm:p-8">
+
+    <div id="app" class="w-full max-w-4xl bg-white rounded-xl shadow-2xl p-6 sm:p-10 border border-indigo-100">
+        <h1 class="text-3xl sm:text-4xl font-extrabold text-indigo-700 mb-2 text-center">
+            🌍 全球旅行指南 (全面版)
+        </h1>
+        <p class="text-center text-gray-500 mb-8">
+            选择全球任一国家，并输入您的旅行疑问，我将为您提供最新信息。
+        </p>
+
+        <!-- 选择国家和查询输入区域 -->
+        <div class="space-y-6">
+            <!-- 国家选择下拉框 -->
+            <div>
+                <label for="countrySelect" class="block text-sm font-medium text-gray-700 mb-2">选择您的目的地国家：</label>
+                <select id="countrySelect" class="w-full p-3 border border-indigo-300 rounded-lg shadow-sm focus:ring-indigo-500 focus:border-indigo-500 transition duration-150 ease-in-out bg-white">
+                    <!-- Options will be populated by JS -->
+                </select>
+            </div>
+
+            <!-- 旅行查询输入框 -->
+            <div>
+                <label for="queryInput" class="block text-sm font-medium text-gray-700 mb-2">您的旅行问题（例如：必去景点、预算估算、签证要求）：</label>
+                <input type="text" id="queryInput" placeholder="输入您的具体问题..."
+                       class="w-full p-3 border border-indigo-300 rounded-lg shadow-sm focus:ring-indigo-500 focus:border-indigo-500 transition duration-150 ease-in-out"
+                       value="冰岛打工度假的最新签证要求">
+            </div>
+
+            <!-- 生成按钮 -->
+            <button id="generateBtn"
+                    class="w-full flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-lg text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 shadow-md transition duration-150 ease-in-out disabled:opacity-50"
+                    disabled>
+                获取旅行建议
+            </button>
+        </div>
+
+        <!-- 结果展示区域 -->
+        <div id="resultsContainer" class="mt-10 pt-8 border-t border-indigo-200">
+            <div id="loadingIndicator" class="hidden text-center">
+                <div class="animate-spin inline-block w-8 h-8 border-4 border-indigo-500 border-t-transparent rounded-full"></div>
+                <p class="mt-2 text-indigo-600 font-medium">AI 正在为您检索和总结最新信息，请稍候...</p>
+            </div>
+
+            <div id="responseText" class="text-gray-800 space-y-4">
+                <!-- AI 生成的文本内容将显示在这里 -->
+            </div>
+
+            <div id="sourcesContainer" class="mt-6 p-4 bg-gray-50 rounded-lg hidden">
+                <p class="text-sm font-semibold text-gray-700 mb-2">信息来源 (Google Search Grounding):</p>
+                <ul id="sourcesList" class="list-disc pl-5 text-sm text-gray-600 space-y-1">
+                    <!-- 引用链接将显示在这里 -->
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- 配置和数据 ---
+        const API_KEY = ""; // Canvas runtime will inject the API key if needed
+        const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${API_KEY}`;
+        
+        // 全球所有国家的列表 (包含用户上次添加的国家)
+        const ALL_COUNTRIES = [
+            // 重点关注和上次添加的国家优先
+            { name: '冰岛', code: 'Iceland' },
+            { name: '中国', code: 'China' },
+            { name: '美国', code: 'United States' },
+            { name: '法国', code: 'France' },
+            { name: '德国', code: 'Germany' },
+            { name: '泰国', code: 'Thailand' },
+            { name: '澳大利亚', code: 'Australia' },
+            { name: '新西兰', code: 'New Zealand' },
+            // 完整的ISO国家列表 (简化中文名称)
+            { name: '阿富汗', code: 'Afghanistan' },
+            { name: '阿尔巴尼亚', code: 'Albania' },
+            { name: '阿尔及利亚', code: 'Algeria' },
+            { name: '安道尔', code: 'Andorra' },
+            { name: '安哥拉', code: 'Angola' },
+            { name: '安提瓜和巴布达', code: 'Antigua and Barbuda' },
+            { name: '阿根廷', code: 'Argentina' },
+            { name: '亚美尼亚', code: 'Armenia' },
+            { name: '奥地利', code: 'Austria' },
+            { name: '阿塞拜疆', code: 'Azerbaijan' },
+            { name: '巴哈马', code: 'Bahamas' },
+            { name: '巴林', code: 'Bahrain' },
+            { name: '孟加拉国', code: 'Bangladesh' },
+            { name: '巴巴多斯', code: 'Barbados' },
+            { name: '白俄罗斯', code: 'Belarus' },
+            { name: '比利时', code: 'Belgium' },
+            { name: '伯利兹', code: 'Belize' },
+            { name: '贝宁', code: 'Benin' },
+            { name: '不丹', code: 'Bhutan' },
+            { name: '玻利维亚', code: 'Bolivia' },
+            { name: '波斯尼亚和黑塞哥维那', code: 'Bosnia and Herzegovina' },
+            { name: '博茨瓦纳', code: 'Botswana' },
+            { name: '巴西', code: 'Brazil' },
+            { name: '文莱', code: 'Brunei' },
+            { name: '保加利亚', code: 'Bulgaria' },
+            { name: '布基纳法索', code: 'Burkina Faso' },
+            { name: '布隆迪', code: 'Burundi' },
+            { name: '佛得角', code: 'Cabo Verde' },
+            { name: '柬埔寨', code: 'Cambodia' },
+            { name: '喀麦隆', code: 'Cameroon' },
+            { name: '加拿大', code: 'Canada' },
+            { name: '中非共和国', code: 'Central African Republic' },
+            { name: '乍得', code: 'Chad' },
+            { name: '智利', code: 'Chile' },
+            { name: '哥伦比亚', code: 'Colombia' },
+            { name: '科摩罗', code: 'Comoros' },
+            { name: '刚果（布）', code: 'Congo-Brazzaville' },
+            { name: '刚果（金）', code: 'Congo-Kinshasa' },
+            { name: '哥斯达黎加', code: 'Costa Rica' },
+            { name: '科特迪瓦', code: 'Cote dIvoire' },
+            { name: '克罗地亚', code: 'Croatia' },
+            { name: '古巴', code: 'Cuba' },
+            { name: '塞浦路斯', code: 'Cyprus' },
+            { name: '捷克', code: 'Czech Republic' },
+            { name: '丹麦', code: 'Denmark' },
+            { name: '吉布提', code: 'Djibouti' },
+            { name: '多米尼克', code: 'Dominica' },
+            { name: '多米尼加共和国', code: 'Dominican Republic' },
+            { name: '厄瓜多尔', code: 'Ecuador' },
+            { name: '埃及', code: 'Egypt' },
+            { name: '萨尔瓦多', code: 'El Salvador' },
+            { name: '赤道几内亚', code: 'Equatorial Guinea' },
+            { name: '厄立特里亚', code: 'Eritrea' },
+            { name: '爱沙尼亚', code: 'Estonia' },
+            { name: '斯威士兰', code: 'Eswatini' },
+            { name: '埃塞俄比亚', code: 'Ethiopia' },
+            { name: '斐济', code: 'Fiji' },
+            { name: '芬兰', code: 'Finland' },
+            { name: '加蓬', code: 'Gabon' },
+            { name: '冈比亚', code: 'Gambia' },
+            { name: '格鲁吉亚', code: 'Georgia' },
+            { name: '加纳', code: 'Ghana' },
+            { name: '希腊', code: 'Greece' },
+            { name: '格林纳达', code: 'Grenada' },
+            { name: '危地马拉', code: 'Guatemala' },
+            { name: '几内亚', code: 'Guinea' },
+            { name: '几内亚比绍', code: 'Guinea-Bissau' },
+            { name: '圭亚那', code: 'Guyana' },
+            { name: '海地', code: 'Haiti' },
+            { name: '洪都拉斯', code: 'Honduras' },
+            { name: '匈牙利', code: 'Hungary' },
+            { name: '印度', code: 'India' },
+            { name: '印度尼西亚', code: 'Indonesia' },
+            { name: '伊朗', code: 'Iran' },
+            { name: '伊拉克', code: 'Iraq' },
+            { name: '爱尔兰', code: 'Ireland' },
+            { name: '以色列', code: 'Israel' },
+            { name: '意大利', code: 'Italy' },
+            { name: '牙买加', code: 'Jamaica' },
+            { name: '日本', code: 'Japan' },
+            { name: '约旦', code: 'Jordan' },
+            { name: '哈萨克斯坦', code: 'Kazakhstan' },
+            { name: '肯尼亚', code: 'Kenya' },
+            { name: '基里巴斯', code: 'Kiribati' },
+            { name: '科威特', code: 'Kuwait' },
+            { name: '吉尔吉斯斯坦', code: 'Kyrgyzstan' },
+            { name: '老挝', code: 'Laos' },
+            { name: '拉脱维亚', code: 'Latvia' },
+            { name: '黎巴嫩', code: 'Lebanon' },
+            { name: '莱索托', code: 'Lesotho' },
+            { name: '利比里亚', code: 'Liberia' },
+            { name: '利比亚', code: 'Libya' },
+            { name: '列支敦士登', code: 'Liechtenstein' },
+            { name: '立陶宛', code: 'Lithuania' },
+            { name: '卢森堡', code: 'Luxembourg' },
+            { name: '马达加斯加', code: 'Madagascar' },
+            { name: '马拉维', code: 'Malawi' },
+            { name: '马来西亚', code: 'Malaysia' },
+            { name: '马尔代夫', code: 'Maldives' },
+            { name: '马里', code: 'Mali' },
+            { name: '马耳他', code: 'Malta' },
+            { name: '马绍尔群岛', code: 'Marshall Islands' },
+            { name: '毛里塔尼亚', code: 'Mauritania' },
+            { name: '毛里求斯', code: 'Mauritius' },
+            { name: '墨西哥', code: 'Mexico' },
+            { name: '密克罗尼西亚', code: 'Micronesia' },
+            { name: '摩尔多瓦', code: 'Moldova' },
+            { name: '摩纳哥', code: 'Monaco' },
+            { name: '蒙古', code: 'Mongolia' },
+            { name: '黑山', code: 'Montenegro' },
+            { name: '摩洛哥', code: 'Morocco' },
+            { name: '莫桑比克', code: 'Mozambique' },
+            { name: '缅甸', code: 'Myanmar' },
+            { name: '纳米比亚', code: 'Namibia' },
+            { name: '瑙鲁', code: 'Nauru' },
+            { name: '尼泊尔', code: 'Nepal' },
+            { name: '荷兰', code: 'Netherlands' },
+            { name: '尼加拉瓜', code: 'Nicaragua' },
+            { name: '尼日尔', code: 'Niger' },
+            { name: '尼日利亚', code: 'Nigeria' },
+            { name: '朝鲜', code: 'North Korea' },
+            { name: '北马其顿', code: 'North Macedonia' },
+            { name: '挪威', code: 'Norway' },
+            { name: '阿曼', code: 'Oman' },
+            { name: '巴基斯坦', code: 'Pakistan' },
+            { name: '帕劳', code: 'Palau' },
+            { name: '巴勒斯坦', code: 'Palestine' },
+            { name: '巴拿马', code: 'Panama' },
+            { name: '巴布亚新几内亚', code: 'Papua New Guinea' },
+            { name: '巴拉圭', code: 'Paraguay' },
+            { name: '秘鲁', code: 'Peru' },
+            { name: '菲律宾', code: 'Philippines' },
+            { name: '波兰', code: 'Poland' },
+            { name: '葡萄牙', code: 'Portugal' },
+            { name: '卡塔尔', code: 'Qatar' },
+            { name: '罗马尼亚', code: 'Romania' },
+            { name: '俄罗斯', code: 'Russia' },
+            { name: '卢旺达', code: 'Rwanda' },
+            { name: '圣基茨和尼维斯', code: 'Saint Kitts and Nevis' },
+            { name: '圣卢西亚', code: 'Saint Lucia' },
+            { name: '圣文森特和格林纳丁斯', code: 'Saint Vincent and the Grenadines' },
+            { name: '萨摩亚', code: 'Samoa' },
+            { name: '圣马力诺', code: 'San Marino' },
+            { name: '圣多美和普林西比', code: 'Sao Tome and Principe' },
+            { name: '沙特阿拉伯', code: 'Saudi Arabia' },
+            { name: '塞内加尔', code: 'Senegal' },
+            { name: '塞尔维亚', code: 'Serbia' },
+            { name: '塞舌尔', code: 'Seychelles' },
+            { name: '塞拉利昂', code: 'Sierra Leone' },
+            { name: '新加坡', code: 'Singapore' },
+            { name: '斯洛伐克', code: 'Slovakia' },
+            { name: '斯洛文尼亚', code: 'Slovenia' },
+            { name: '所罗门群岛', code: 'Solomon Islands' },
+            { name: '索马里', code: 'Somalia' },
+            { name: '南非', code: 'South Africa' },
+            { name: '韩国', code: 'South Korea' },
+            { name: '南苏丹', code: 'South Sudan' },
+            { name: '西班牙', code: 'Spain' },
+            { name: '斯里兰卡', code: 'Sri Lanka' },
+            { name: '苏丹', code: 'Sudan' },
+            { name: '苏里南', code: 'Suriname' },
+            { name: '瑞典', code: 'Sweden' },
+            { name: '瑞士', code: 'Switzerland' },
+            { name: '叙利亚', code: 'Syria' },
+            { name: '塔吉克斯坦', code: 'Tajikistan' },
+            { name: '坦桑尼亚', code: 'Tanzania' },
+            { name: '东帝汶', code: 'Timor-Leste' },
+            { name: '多哥', code: 'Togo' },
+            { name: '汤加', code: 'Tonga' },
+            { name: '特立尼达和多巴哥', code: 'Trinidad and Tobago' },
+            { name: '突尼斯', code: 'Tunisia' },
+            { name: '土耳其', code: 'Turkey' },
+            { name: '土库曼斯坦', code: 'Turkmenistan' },
+            { name: '图瓦卢', code: 'Tuvalu' },
+            { name: '乌干达', code: 'Uganda' },
+            { name: '乌克兰', code: 'Ukraine' },
+            { name: '阿拉伯联合酋长国', code: 'United Arab Emirates' },
+            { name: '英国', code: 'United Kingdom' },
+            { name: '乌拉圭', code: 'Uruguay' },
+            { name: '乌兹别克斯坦', code: 'Uzbekistan' },
+            { name: '瓦努阿图', code: 'Vanuatu' },
+            { name: '梵蒂冈', code: 'Vatican City' },
+            { name: '委内瑞拉', code: 'Venezuela' },
+            { name: '越南', code: 'Vietnam' },
+            { name: '也门', code: 'Yemen' },
+            { name: '赞比亚', code: 'Zambia' },
+            { name: '津巴布韦', code: 'Zimbabwe' }
+        ];
+
+        // --- DOM 元素引用 ---
+        const countrySelect = document.getElementById('countrySelect');
+        const queryInput = document.getElementById('queryInput');
+        const generateBtn = document.getElementById('generateBtn');
+        const loadingIndicator = document.getElementById('loadingIndicator');
+        const responseTextDiv = document.getElementById('responseText');
+        const sourcesContainer = document.getElementById('sourcesContainer');
+        const sourcesList = document.getElementById('sourcesList');
+
+        // --- 工具函数 ---
+
+        /**
+         * 填充国家下拉框
+         */
+        function populateCountries() {
+            // 对国家列表进行排序，方便查找
+            const sortedCountries = ALL_COUNTRIES.sort((a, b) => a.name.localeCompare(b.name, 'zh'));
+            
+            countrySelect.innerHTML = sortedCountries.map(country => 
+                `<option value="${country.name}" data-code="${country.code}">${country.name}</option>`
+            ).join('');
+            
+            // 默认选择冰岛，保持对您当前计划的关注
+            countrySelect.value = '冰岛';
+            updateButtonState();
+        }
+
+        /**
+         * 检查输入并更新按钮状态
+         */
+        function updateButtonState() {
+            generateBtn.disabled = !queryInput.value.trim() || !countrySelect.value;
+        }
+
+        /**
+         * 格式化 Markdown 文本为 HTML
+         */
+        function formatMarkdownToHtml(markdownText) {
+            if (!markdownText) return '';
+            
+            // 1. 替换段落换行符为 <br>
+            let htmlText = markdownText.trim().replace(/\n/g, '<br>');
+
+            // 2. 替换 Markdown 标题 (#, ##) 为 HTML 标题
+            htmlText = htmlText.replace(/^###\s*(.*)$/gm, '<h3 class="text-xl font-semibold mt-4 mb-2 text-indigo-600">$1</h3>');
+            htmlText = htmlText.replace(/^##\s*(.*)$/gm, '<h2 class="text-2xl font-bold mt-6 mb-3 text-indigo-700">$1</h2>');
+            htmlText = htmlText.replace(/^#\s*(.*)$/gm, '<h1 class="text-3xl font-extrabold mt-8 mb-4 text-indigo-800">$1</h1>');
+
+            // 3. 替换 **粗体** 为 <strong>
+            htmlText = htmlText.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+
+            // 4. 处理无序列表
+            const lines = htmlText.split('<br>');
+            let inList = false;
+            let finalHtml = [];
+
+            lines.forEach(line => {
+                const trimmedLine = line.trim();
+                if (trimmedLine.startsWith('* ') || trimmedLine.startsWith('- ')) {
+                    if (!inList) {
+                        finalHtml.push('<ul class="list-disc list-inside ml-4 space-y-1">');
+                        inList = true;
+                    }
+                    // Remove the bullet and wrap in <li>
+                    finalHtml.push(`<li>${trimmedLine.substring(2).trim()}</li>`);
+                } else {
+                    if (inList) {
+                        finalHtml.push('</ul>');
+                        inList = false;
+                    }
+                    // Wrap regular lines in a paragraph tag (if not empty or a heading)
+                    if (trimmedLine) {
+                         if (!trimmedLine.startsWith('<h') && !trimmedLine.startsWith('<strong>')) {
+                            finalHtml.push(`<p class="mb-3">${trimmedLine}</p>`);
+                         } else {
+                            finalHtml.push(trimmedLine);
+                         }
+                    }
+                }
+            });
+
+            if (inList) {
+                finalHtml.push('</ul>');
+            }
+
+            return finalHtml.join('');
+        }
+        
+        // --- API 调用逻辑 ---
+
+        /**
+         * 调用 Gemini API 并实现指数退避重试机制
+         */
+        async function callGeminiAPI(payload, retries = 5, delay = 1000) {
+            for (let i = 0; i < retries; i++) {
+                try {
+                    const response = await fetch(API_URL, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+
+                    if (response.ok) {
+                        const result = await response.json();
+                        const candidate = result.candidates?.[0];
+
+                        if (candidate && candidate.content?.parts?.[0]?.text) {
+                            const text = candidate.content.parts[0].text;
+                            let sources = [];
+                            const groundingMetadata = candidate.groundingMetadata;
+                            
+                            if (groundingMetadata && groundingMetadata.groundingAttributions) {
+                                sources = groundingMetadata.groundingAttributions
+                                    .map(attribution => ({
+                                        uri: attribution.web?.uri,
+                                        title: attribution.web?.title,
+                                    }))
+                                    .filter(source => source.uri && source.title);
+                            }
+                            
+                            return { text, sources };
+
+                        } else {
+                            throw new Error("API response was valid but contained no generated text.");
+                        }
+                    } else if (response.status === 429 && i < retries - 1) {
+                        // 429 Too Many Requests: wait and retry
+                        await new Promise(resolve => setTimeout(resolve, delay));
+                        delay *= 2; // Exponential backoff
+                        // Do not log retry as an error
+                    } else {
+                        // Other HTTP errors or last retry failed
+                        throw new Error(`API call failed with status: ${response.status}`);
+                    }
+                } catch (error) {
+                    if (i === retries - 1) {
+                        console.error("Gemini API call failed after multiple retries:", error);
+                        throw new Error("无法连接到 AI 服务。请稍后再试。");
+                    }
+                    // Wait for the next retry
+                    await new Promise(resolve => setTimeout(resolve, delay));
+                    delay *= 2; // Exponential backoff
+                }
+            }
+        }
+
+        /**
+         * 主处理函数：生成旅行建议
+         */
+        async function handleGenerate() {
+            const selectedCountryName = countrySelect.value;
+            // 获取英文/拼音代码用于搜索优化
+            const countryCode = countrySelect.options[countrySelect.selectedIndex].getAttribute('data-code'); 
+            const userQuery = queryInput.value.trim();
+
+            if (!selectedCountryName || !userQuery) return;
+
+            // 1. 清理和设置状态
+            responseTextDiv.innerHTML = '';
+            sourcesList.innerHTML = '';
+            sourcesContainer.classList.add('hidden');
+            loadingIndicator.classList.remove('hidden');
+            generateBtn.disabled = true;
+
+            const systemPrompt = "Act as a passionate and knowledgeable travel expert. Provide a detailed, easy-to-read travel guide or summary based on the user's query about the specified country. Structure your response with clear headings and bullet points where appropriate. All output MUST be in Chinese, including country names.";
+            
+            // 2. 构建提示 (包含中文和英文/代码以提高搜索准确性)
+            const fullPrompt = `请为我总结关于 "${selectedCountryName} (${countryCode})" 的旅行信息：${userQuery}`;
+            
+            // 3. 构建 API Payload
+            const payload = {
+                contents: [{ parts: [{ text: fullPrompt }] }],
+                tools: [{ "google_search": {} }],
+                systemInstruction: {
+                    parts: [{ text: systemPrompt }]
+                },
+            };
+
+            try {
+                // 4. 调用 API
+                const { text, sources } = await callGeminiAPI(payload);
+
+                // 5. 显示结果
+                responseTextDiv.innerHTML = formatMarkdownToHtml(text);
+
+                // 6. 显示来源
+                if (sources.length > 0) {
+                    sources.forEach(source => {
+                        const listItem = document.createElement('li');
+                        listItem.innerHTML = `<a href="${source.uri}" target="_blank" class="text-indigo-500 hover:text-indigo-700 transition duration-150 ease-in-out truncate block" title="${source.title || source.uri}">${source.title || '无标题链接'}</a>`;
+                        sourcesList.appendChild(listItem);
+                    });
+                    sourcesContainer.classList.remove('hidden');
+                } else {
+                    sourcesContainer.classList.add('hidden');
+                }
+
+            } catch (error) {
+                responseTextDiv.innerHTML = `<p class="text-red-500 font-medium">⚠️ 发生错误：${error.message}</p>`;
+                console.error(error);
+            } finally {
+                // 7. 恢复状态
+                loadingIndicator.classList.add('hidden');
+                updateButtonState();
+            }
+        }
+
+        // --- 事件监听器和初始化 ---
+
+        // 绑定事件到生成按钮
+        generateBtn.addEventListener('click', handleGenerate);
+
+        // 实时检查输入状态
+        queryInput.addEventListener('input', updateButtonState);
+
+        // 初始化应用程序
+        window.onload = () => {
+            populateCountries();
+        };
+
+    </script>
+</body>
+</html>
