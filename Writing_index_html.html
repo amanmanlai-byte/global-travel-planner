@@ -1,0 +1,708 @@
+<!DOCTYPE html>
+<html lang="zh-Hans">
+<head><base href="https://d16ilfvy4mv02r.cloudfront.net/workspaces/8VJupbBsqfoyousugNFWU0R3p1wHJ5AJ/c472059f-fa39-47ed-b890-be22230f836e/files/">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>全球旅游规划助手</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap');
+        body {
+            font-family: 'Inter', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+            background: linear-gradient(135deg, #e8f0fe 0%, #f0f4ff 50%, #e8f8f0 100%);
+            min-height: 100vh;
+        }
+        #countrySelect {
+            appearance: none;
+            background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='none' stroke='%236B7280'%3e%3cpath d='M6 8l4 4 4-4' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3e%3c/svg%3e");
+            background-repeat: no-repeat;
+            background-position: right 0.75rem center;
+            background-size: 1.5em 1.5em;
+            padding-right: 2.5rem;
+        }
+        /* Tab styles */
+        .tab-btn { transition: all 0.2s ease; }
+        .tab-btn.active {
+            background: linear-gradient(135deg, #4f46e5, #7c3aed);
+            color: white;
+            box-shadow: 0 4px 14px rgba(79,70,229,0.4);
+        }
+        .tab-btn:not(.active) { color: #6b7280; background: #f3f4f6; }
+        .tab-btn:not(.active):hover { background: #e5e7eb; color: #374151; }
+
+        /* Deep analysis report styles */
+        .report-section { border-radius: 14px; overflow: hidden; margin-bottom: 20px; box-shadow: 0 2px 16px rgba(0,0,0,0.08); }
+        .report-section-header {
+            padding: 14px 20px;
+            font-weight: 700; font-size: 16px;
+            display: flex; align-items: center; gap: 8px;
+        }
+        .report-section-body { padding: 20px; background: white; }
+        .budget-table { width: 100%; border-collapse: collapse; font-size: 14px; }
+        .budget-table th { background: #4f46e5; color: white; padding: 10px 14px; text-align: left; font-size: 13px; }
+        .budget-table td { padding: 10px 14px; border-bottom: 1px solid #e5e7eb; }
+        .budget-table tr:last-child td { background: #eef2ff; font-weight: 700; color: #4338ca; }
+        .budget-table tr:hover:not(:last-child) td { background: #f5f3ff; }
+        .attraction-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 14px; }
+        .attraction-card { border-radius: 12px; border: 1px solid #e5e7eb; overflow: hidden; }
+        .attraction-card-header { padding: 12px 16px; background: linear-gradient(135deg, #4f46e5, #7c3aed); color: white; }
+        .attraction-card-body { padding: 14px 16px; font-size: 13px; line-height: 1.6; }
+        .warn-item { border-radius: 10px; overflow: hidden; display: flex; margin-bottom: 10px; box-shadow: 0 1px 8px rgba(0,0,0,0.07); }
+        .warn-strip { width: 6px; flex-shrink: 0; }
+        .warn-content { flex: 1; background: white; padding: 14px 18px; }
+        .itin-row { display: flex; gap: 0; margin-bottom: 12px; }
+        .itin-day-badge {
+            width: 52px; flex-shrink: 0; display: flex; flex-direction: column; align-items: center; padding-top: 10px;
+        }
+        .itin-day-circle {
+            width: 38px; height: 38px; border-radius: 50%;
+            background: linear-gradient(135deg, #4f46e5, #7c3aed);
+            color: white; font-weight: 800; font-size: 12px;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .itin-content { flex: 1; background: white; border-radius: 10px; padding: 14px 18px; font-size: 13px; line-height: 1.7; margin-left: 8px; border: 1px solid #e5e7eb; }
+        .itin-content strong { color: #4338ca; }
+        .metric-mini { text-align: center; background: white; border-radius: 12px; padding: 16px 12px; border: 1px solid #e5e7eb; }
+        .metric-mini .value { font-size: 24px; font-weight: 800; color: #4338ca; }
+        .metric-mini .label { font-size: 12px; color: #9ca3af; margin-top: 2px; }
+        .food-pill { display: inline-flex; align-items: center; gap: 6px; background: #fef3c7; border: 1px solid #fde68a; border-radius: 20px; padding: 6px 14px; font-size: 13px; font-weight: 500; color: #92400e; margin: 4px; }
+        /* Quick query markdown styles */
+        #responseText h1, #responseText h2, #responseText h3 { font-weight: 700; color: #1e293b; margin-top: 1rem; margin-bottom: 0.5rem; }
+        #responseText h1 { font-size: 1.4rem; } #responseText h2 { font-size: 1.2rem; } #responseText h3 { font-size: 1.05rem; color: #4f46e5; }
+        #responseText ul { list-style: disc; padding-left: 1.5rem; } #responseText ol { list-style: decimal; padding-left: 1.5rem; }
+        #responseText li { margin-bottom: 0.3rem; } #responseText p { margin-bottom: 0.5rem; line-height: 1.7; }
+        #responseText strong { font-weight: 700; color: #1e293b; } #responseText a { color: #4f46e5; text-decoration: underline; }
+        #responseText table { border-collapse: collapse; width: 100%; margin: 1rem 0; }
+        #responseText th { background: #eef2ff; padding: 8px 12px; text-align: left; font-weight: 600; border: 1px solid #c7d2fe; }
+        #responseText td { padding: 8px 12px; border: 1px solid #e5e7eb; }
+        /* Loading pulse */
+        @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.5; } }
+        .analyzing-text { animation: pulse 1.5s infinite; }
+    </style>
+</head>
+<body class="p-4 sm:p-8">
+
+<div class="w-full max-w-4xl mx-auto">
+    <!-- Header -->
+    <div class="text-center mb-8">
+        <h1 class="text-3xl sm:text-4xl font-extrabold text-indigo-700 mb-2">🌍 全球旅游规划助手</h1>
+        <p class="text-gray-500">AI 驱动的旅游智能分析 · 预算估算 · 景点推荐 · 避雷攻略</p>
+    </div>
+
+    <!-- Tab Navigation -->
+    <div class="flex gap-3 mb-6 p-1 bg-gray-100 rounded-xl">
+        <button id="tab-quick" class="tab-btn active flex-1 py-3 px-4 rounded-lg font-semibold text-sm flex items-center justify-center gap-2" onclick="switchTab('quick')">
+            <span>💬</span> 快速问答
+        </button>
+        <button id="tab-deep" class="tab-btn flex-1 py-3 px-4 rounded-lg font-semibold text-sm flex items-center justify-center gap-2" onclick="switchTab('deep')">
+            <span>🔍</span> 旅游深度分析
+        </button>
+    </div>
+
+    <!-- === TAB 1: Quick Query === -->
+    <div id="panel-quick" class="bg-white rounded-2xl shadow-xl p-6 sm:p-10 border border-indigo-100">
+        <div class="space-y-5">
+            <div>
+                <label for="countrySelect" class="block text-sm font-medium text-gray-700 mb-2">🌏 选择目的地国家：</label>
+                <select id="countrySelect" class="w-full p-3 border border-indigo-300 rounded-lg shadow-sm focus:ring-indigo-500 focus:border-indigo-500 bg-white transition"></select>
+            </div>
+            <div>
+                <label for="queryInput" class="block text-sm font-medium text-gray-700 mb-2">❓ 旅行问题（景点、预算、签证等）：</label>
+                <input type="text" id="queryInput" placeholder="例如：必去景点有哪些？签证怎么办？"
+                       class="w-full p-3 border border-indigo-300 rounded-lg shadow-sm focus:ring-indigo-500 focus:border-indigo-500 transition"
+                       value="有哪些必去景点和美食？">
+            </div>
+            <button id="generateBtn"
+                    class="w-full flex items-center justify-center px-6 py-3 text-base font-medium rounded-lg text-white bg-indigo-600 hover:bg-indigo-700 focus:ring-2 focus:ring-indigo-500 shadow-md transition disabled:opacity-50"
+                    disabled>获取旅行建议</button>
+        </div>
+
+        <div id="resultsContainer" class="mt-8 pt-6 border-t border-indigo-100">
+            <div id="loadingIndicator" class="hidden text-center py-6">
+                <div class="animate-spin inline-block w-8 h-8 border-4 border-indigo-500 border-t-transparent rounded-full"></div>
+                <p class="mt-3 text-indigo-600 font-medium analyzing-text">AI 正在检索最新信息，请稍候…</p>
+            </div>
+            <div id="responseText" class="text-gray-800 space-y-3"></div>
+            <div id="sourcesContainer" class="mt-5 p-4 bg-gray-50 rounded-lg hidden">
+                <p class="text-sm font-semibold text-gray-700 mb-2">信息来源：</p>
+                <ul id="sourcesList" class="list-disc pl-5 text-sm text-gray-600 space-y-1"></ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- === TAB 2: Deep Analysis === -->
+    <div id="panel-deep" class="hidden">
+        <div class="bg-white rounded-2xl shadow-xl p-6 sm:p-10 border border-purple-100">
+            <p class="text-sm text-gray-500 mb-6 text-center">填写以下信息，AI 将为你生成完整的旅游分析报告：预算 · 景点 · 行程 · 避雷</p>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                <!-- Destination -->
+                <div class="sm:col-span-2">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">🌍 旅游目的地 <span class="text-red-500">*</span></label>
+                    <input type="text" id="deepDestination" placeholder="例如：冰岛、法国巴黎、泰国清迈"
+                           class="w-full p-3 border border-purple-300 rounded-lg focus:ring-purple-500 focus:border-purple-500 transition" />
+                </div>
+                <!-- Duration -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">📅 旅游天数 <span class="text-red-500">*</span></label>
+                    <input type="number" id="deepDuration" value="7" min="1" max="30"
+                           class="w-full p-3 border border-purple-300 rounded-lg focus:ring-purple-500 focus:border-purple-500 transition" />
+                </div>
+                <!-- Travelers -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">👥 出行人数</label>
+                    <input type="number" id="deepTravelers" value="1" min="1" max="20"
+                           class="w-full p-3 border border-purple-300 rounded-lg focus:ring-purple-500 focus:border-purple-500 transition" />
+                </div>
+                <!-- Travel Style -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">💰 旅游风格 <span class="text-red-500">*</span></label>
+                    <select id="deepStyle" class="w-full p-3 border border-purple-300 rounded-lg focus:ring-purple-500 focus:border-purple-500 transition bg-white">
+                        <option value="穷游省钱型">💸 穷游省钱型 — 青旅+街边小吃</option>
+                        <option value="舒适中档型" selected>🏨 舒适中档型 — 快捷酒店+正规餐厅</option>
+                        <option value="豪华享受型">✨ 豪华享受型 — 五星酒店+精品体验</option>
+                    </select>
+                </div>
+                <!-- Depart City -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">✈️ 出发城市（可选）</label>
+                    <input type="text" id="deepDepartCity" placeholder="例如：北京、上海、广州"
+                           class="w-full p-3 border border-purple-300 rounded-lg focus:ring-purple-500 focus:border-purple-500 transition" />
+                </div>
+                <!-- Interests -->
+                <div class="sm:col-span-2">
+                    <label class="block text-sm font-medium text-gray-700 mb-3">🎯 兴趣偏好（可多选）</label>
+                    <div class="flex flex-wrap gap-2" id="interestBtns">
+                        <button class="interest-btn px-4 py-2 rounded-full text-sm font-medium border-2 border-purple-300 text-purple-600 hover:bg-purple-50 transition" data-val="历史文化古迹">🏛️ 历史文化</button>
+                        <button class="interest-btn px-4 py-2 rounded-full text-sm font-medium border-2 border-purple-300 text-purple-600 hover:bg-purple-50 transition" data-val="自然风景">🌿 自然风景</button>
+                        <button class="interest-btn px-4 py-2 rounded-full text-sm font-medium border-2 border-purple-300 text-purple-600 hover:bg-purple-50 transition" data-val="美食探索">🍜 美食探索</button>
+                        <button class="interest-btn px-4 py-2 rounded-full text-sm font-medium border-2 border-purple-300 text-purple-600 hover:bg-purple-50 transition" data-val="购物娱乐">🛍️ 购物娱乐</button>
+                        <button class="interest-btn px-4 py-2 rounded-full text-sm font-medium border-2 border-purple-300 text-purple-600 hover:bg-purple-50 transition" data-val="艺术博物馆">🎨 艺术博物馆</button>
+                        <button class="interest-btn px-4 py-2 rounded-full text-sm font-medium border-2 border-purple-300 text-purple-600 hover:bg-purple-50 transition" data-val="户外冒险">🧗 户外冒险</button>
+                    </div>
+                </div>
+            </div>
+
+            <button id="deepAnalyzeBtn"
+                    class="mt-6 w-full flex items-center justify-center gap-2 px-6 py-4 text-base font-bold rounded-xl text-white shadow-lg transition disabled:opacity-50"
+                    style="background: linear-gradient(135deg, #4f46e5, #7c3aed);"
+                    onclick="runDeepAnalysis()">
+                🔍 生成完整旅游分析报告
+            </button>
+        </div>
+
+        <!-- Deep Analysis Result -->
+        <div id="deepResult" class="mt-6 hidden">
+            <div id="deepLoading" class="hidden bg-white rounded-2xl p-10 text-center shadow-xl">
+                <div class="animate-spin inline-block w-10 h-10 border-4 border-purple-500 border-t-transparent rounded-full mb-4"></div>
+                <p class="text-purple-700 font-bold text-lg analyzing-text">AI 正在深度分析中…</p>
+                <p class="text-gray-400 text-sm mt-2">正在搜索费用数据、景点信息、避雷攻略，请稍候约30秒</p>
+            </div>
+            <div id="deepReport" class="space-y-4"></div>
+        </div>
+    </div>
+</div>
+
+<script>
+// ============================================================
+// CONFIG
+// ============================================================
+const API_KEY = "";
+const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${API_KEY}`;
+
+// ============================================================
+// COUNTRY DATA
+// ============================================================
+const ALL_COUNTRIES = [
+    { name: '冰岛', code: 'Iceland' }, { name: '中国', code: 'China' },
+    { name: '美国', code: 'United States' }, { name: '法国', code: 'France' },
+    { name: '日本', code: 'Japan' }, { name: '泰国', code: 'Thailand' },
+    { name: '韩国', code: 'South Korea' }, { name: '意大利', code: 'Italy' },
+    { name: '西班牙', code: 'Spain' }, { name: '德国', code: 'Germany' },
+    { name: '英国', code: 'United Kingdom' }, { name: '澳大利亚', code: 'Australia' },
+    { name: '新西兰', code: 'New Zealand' }, { name: '加拿大', code: 'Canada' },
+    { name: '新加坡', code: 'Singapore' }, { name: '马来西亚', code: 'Malaysia' },
+    { name: '印度尼西亚', code: 'Indonesia' }, { name: '越南', code: 'Vietnam' },
+    { name: '印度', code: 'India' }, { name: '土耳其', code: 'Turkey' },
+    { name: '希腊', code: 'Greece' }, { name: '葡萄牙', code: 'Portugal' },
+    { name: '荷兰', code: 'Netherlands' }, { name: '瑞士', code: 'Switzerland' },
+    { name: '挪威', code: 'Norway' }, { name: '瑞典', code: 'Sweden' },
+    { name: '丹麦', code: 'Denmark' }, { name: '芬兰', code: 'Finland' },
+    { name: '奥地利', code: 'Austria' }, { name: '捷克', code: 'Czech Republic' },
+    { name: '匈牙利', code: 'Hungary' }, { name: '波兰', code: 'Poland' },
+    { name: '埃及', code: 'Egypt' }, { name: '摩洛哥', code: 'Morocco' },
+    { name: '南非', code: 'South Africa' }, { name: '肯尼亚', code: 'Kenya' },
+    { name: '坦桑尼亚', code: 'Tanzania' }, { name: '巴西', code: 'Brazil' },
+    { name: '阿根廷', code: 'Argentina' }, { name: '秘鲁', code: 'Peru' },
+    { name: '墨西哥', code: 'Mexico' }, { name: '哥斯达黎加', code: 'Costa Rica' },
+    { name: '以色列', code: 'Israel' }, { name: '约旦', code: 'Jordan' },
+    { name: '阿联酋', code: 'United Arab Emirates' }, { name: '卡塔尔', code: 'Qatar' },
+    { name: '斯里兰卡', code: 'Sri Lanka' }, { name: '尼泊尔', code: 'Nepal' },
+    { name: '柬埔寨', code: 'Cambodia' }, { name: '菲律宾', code: 'Philippines' },
+    { name: '缅甸', code: 'Myanmar' }, { name: '老挝', code: 'Laos' },
+    { name: '不丹', code: 'Bhutan' }, { name: '蒙古', code: 'Mongolia' },
+    { name: '俄罗斯', code: 'Russia' }, { name: '乌克兰', code: 'Ukraine' },
+    { name: '克罗地亚', code: 'Croatia' }, { name: '斯洛文尼亚', code: 'Slovenia' },
+    { name: '波黑', code: 'Bosnia and Herzegovina' }, { name: '黑山', code: 'Montenegro' },
+    { name: '阿尔巴尼亚', code: 'Albania' }, { name: '北马其顿', code: 'North Macedonia' },
+    { name: '塞尔维亚', code: 'Serbia' }, { name: '罗马尼亚', code: 'Romania' },
+    { name: '保加利亚', code: 'Bulgaria' }, { name: '爱尔兰', code: 'Ireland' },
+    { name: '比利时', code: 'Belgium' }, { name: '卢森堡', code: 'Luxembourg' },
+    { name: '马耳他', code: 'Malta' }, { name: '塞浦路斯', code: 'Cyprus' },
+    { name: '爱沙尼亚', code: 'Estonia' }, { name: '拉脱维亚', code: 'Latvia' },
+    { name: '立陶宛', code: 'Lithuania' }, { name: '斯洛伐克', code: 'Slovakia' },
+    { name: '巴拿马', code: 'Panama' }, { name: '古巴', code: 'Cuba' },
+    { name: '牙买加', code: 'Jamaica' }, { name: '巴哈马', code: 'Bahamas' },
+    { name: '多米尼加', code: 'Dominican Republic' }, { name: '哥伦比亚', code: 'Colombia' },
+    { name: '智利', code: 'Chile' }, { name: '乌拉圭', code: 'Uruguay' },
+    { name: '玻利维亚', code: 'Bolivia' }, { name: '厄瓜多尔', code: 'Ecuador' },
+    { name: '巴拉圭', code: 'Paraguay' }, { name: '委内瑞拉', code: 'Venezuela' }
+];
+
+function populateCountries() {
+    const select = document.getElementById('countrySelect');
+    ALL_COUNTRIES.forEach(c => {
+        const opt = document.createElement('option');
+        opt.value = c.name; opt.setAttribute('data-code', c.code); opt.textContent = `${c.name} (${c.code})`;
+        select.appendChild(opt);
+    });
+    updateButtonState();
+}
+
+// ============================================================
+// TAB SWITCHING
+// ============================================================
+function switchTab(tab) {
+    document.getElementById('panel-quick').classList.toggle('hidden', tab !== 'quick');
+    document.getElementById('panel-deep').classList.toggle('hidden', tab !== 'deep');
+    document.getElementById('tab-quick').classList.toggle('active', tab === 'quick');
+    document.getElementById('tab-deep').classList.toggle('active', tab === 'deep');
+}
+
+// ============================================================
+// INTEREST BUTTONS
+// ============================================================
+document.addEventListener('click', e => {
+    if (e.target.classList.contains('interest-btn')) {
+        e.target.classList.toggle('selected');
+        if (e.target.classList.contains('selected')) {
+            e.target.style.background = 'linear-gradient(135deg, #4f46e5, #7c3aed)';
+            e.target.style.color = 'white';
+            e.target.style.borderColor = '#4f46e5';
+        } else {
+            e.target.style.background = ''; e.target.style.color = ''; e.target.style.borderColor = '';
+        }
+    }
+});
+
+function getSelectedInterests() {
+    return [...document.querySelectorAll('.interest-btn.selected')].map(b => b.dataset.val);
+}
+
+// ============================================================
+// QUICK QUERY (Tab 1)
+// ============================================================
+function updateButtonState() {
+    const btn = document.getElementById('generateBtn');
+    const q = document.getElementById('queryInput').value.trim();
+    const c = document.getElementById('countrySelect').value;
+    btn.disabled = !q || !c;
+}
+
+function formatMarkdownToHtml(md) {
+    return md
+        .replace(/^### (.+)$/gm, '<h3>$1</h3>').replace(/^## (.+)$/gm, '<h2>$1</h2>').replace(/^# (.+)$/gm, '<h1>$1</h1>')
+        .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>').replace(/\*(.+?)\*/g, '<em>$1</em>')
+        .replace(/^\* (.+)$/gm, '<li>$1</li>').replace(/^- (.+)$/gm, '<li>$1</li>')
+        .replace(/(<li>.*<\/li>)/gs, '<ul>$1</ul>')
+        .replace(/^\d+\. (.+)$/gm, '<li>$1</li>')
+        .replace(/\n\n/g, '</p><p>').replace(/^(?!<[hul])/gm, '<p>').replace(/(?<![>])$/gm, '</p>')
+        .replace(/<p><\/p>/g, '');
+}
+
+async function callGeminiAPI(payload, retries = 3) {
+    let delay = 2000;
+    for (let i = 0; i < retries; i++) {
+        try {
+            const resp = await fetch(API_URL, {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            if (resp.ok) {
+                const data = await resp.json();
+                const text = data?.candidates?.[0]?.content?.parts?.[0]?.text || '';
+                const groundingChunks = data?.candidates?.[0]?.groundingMetadata?.groundingChunks || [];
+                const sources = groundingChunks.map(c => c.web).filter(Boolean);
+                if (!text) throw new Error("API 返回了空内容");
+                return { text, sources };
+            } else if (resp.status === 429 && i < retries - 1) {
+                await new Promise(r => setTimeout(r, delay)); delay *= 2;
+            } else { throw new Error(`API 请求失败: ${resp.status}`); }
+        } catch (err) {
+            if (i === retries - 1) throw new Error("无法连接 AI 服务，请稍后再试");
+            await new Promise(r => setTimeout(r, delay)); delay *= 2;
+        }
+    }
+}
+
+async function handleGenerate() {
+    const country = document.getElementById('countrySelect').value;
+    const countryCode = document.getElementById('countrySelect').options[document.getElementById('countrySelect').selectedIndex].getAttribute('data-code');
+    const query = document.getElementById('queryInput').value.trim();
+    if (!country || !query) return;
+
+    document.getElementById('responseText').innerHTML = '';
+    document.getElementById('sourcesList').innerHTML = '';
+    document.getElementById('sourcesContainer').classList.add('hidden');
+    document.getElementById('loadingIndicator').classList.remove('hidden');
+    document.getElementById('generateBtn').disabled = true;
+
+    const payload = {
+        contents: [{ parts: [{ text: `请为我总结关于 "${country} (${countryCode})" 的旅行信息：${query}` }] }],
+        tools: [{ "google_search": {} }],
+        systemInstruction: { parts: [{ text: "Act as a passionate travel expert. Provide detailed, easy-to-read travel guide in Chinese with clear headings and bullet points." }] }
+    };
+
+    try {
+        const { text, sources } = await callGeminiAPI(payload);
+        document.getElementById('responseText').innerHTML = formatMarkdownToHtml(text);
+        if (sources.length > 0) {
+            sources.forEach(s => {
+                const li = document.createElement('li');
+                li.innerHTML = `<a href="${s.uri}" target="_blank" class="text-indigo-500 hover:text-indigo-700 truncate block">${s.title || s.uri}</a>`;
+                document.getElementById('sourcesList').appendChild(li);
+            });
+            document.getElementById('sourcesContainer').classList.remove('hidden');
+        }
+    } catch (err) {
+        document.getElementById('responseText').innerHTML = `<p class="text-red-500 font-medium">⚠️ ${err.message}</p>`;
+    } finally {
+        document.getElementById('loadingIndicator').classList.add('hidden');
+        updateButtonState();
+    }
+}
+
+document.getElementById('generateBtn').addEventListener('click', handleGenerate);
+document.getElementById('queryInput').addEventListener('input', updateButtonState);
+
+// ============================================================
+// DEEP ANALYSIS (Tab 2)
+// ============================================================
+async function runDeepAnalysis() {
+    const destination = document.getElementById('deepDestination').value.trim();
+    const duration = parseInt(document.getElementById('deepDuration').value) || 7;
+    const travelers = parseInt(document.getElementById('deepTravelers').value) || 1;
+    const style = document.getElementById('deepStyle').value;
+    const departCity = document.getElementById('deepDepartCity').value.trim();
+    const interests = getSelectedInterests();
+
+    if (!destination) {
+        alert('请输入旅游目的地！'); return;
+    }
+
+    const btn = document.getElementById('deepAnalyzeBtn');
+    btn.disabled = true;
+    document.getElementById('deepResult').classList.remove('hidden');
+    document.getElementById('deepLoading').classList.remove('hidden');
+    document.getElementById('deepReport').innerHTML = '';
+
+    const interestStr = interests.length > 0 ? interests.join('、') : '综合旅游';
+    const departStr = departCity ? `出发城市：${departCity}，` : '';
+
+    const prompt = `你是一位专业的全球旅游分析师。请为以下旅行计划生成一份完整的旅游深度分析报告，全部用中文输出。
+
+旅行信息：
+- 目的地：${destination}
+- 旅游天数：${duration}天
+- 出行人数：${travelers}人
+- 旅游风格：${style}
+- 兴趣偏好：${interestStr}
+- ${departStr}
+
+请按照以下格式输出JSON，不要有多余文字，只输出JSON：
+{
+  "overview": {
+    "destination": "${destination}",
+    "summary": "目的地2-3句简介",
+    "bestSeason": "最佳旅游季节",
+    "currency": "货币",
+    "language": "语言",
+    "visa": "中国公民签证要求简述"
+  },
+  "budget": {
+    "total": "总预算人民币金额（数字，不带符号）",
+    "dailyAvg": "日均人民币（数字）",
+    "items": [
+      {"name": "✈️ 往返机票", "amount": "金额（含¥）", "note": "说明"},
+      {"name": "🏨 住宿", "amount": "金额（含¥）", "note": "说明"},
+      {"name": "🍽️ 餐饮", "amount": "金额（含¥）", "note": "说明"},
+      {"name": "🚗 当地交通", "amount": "金额（含¥）", "note": "说明"},
+      {"name": "🎯 景点活动", "amount": "金额（含¥）", "note": "说明"},
+      {"name": "🧳 购物杂费", "amount": "金额（含¥）", "note": "说明"},
+      {"name": "📋 签证保险", "amount": "金额（含¥）", "note": "说明"}
+    ],
+    "tips": ["省钱技巧1", "省钱技巧2", "省钱技巧3"]
+  },
+  "attractions": [
+    {"icon": "🏔️", "name": "景点名称", "type": "景点类型", "desc": "景点简介2-3句", "ticket": "门票", "time": "建议游览时长", "stars": 5},
+    {"icon": "🌊", "name": "景点名称", "type": "景点类型", "desc": "景点简介2-3句", "ticket": "门票", "time": "建议游览时长", "stars": 5},
+    {"icon": "🏛️", "name": "景点名称", "type": "景点类型", "desc": "景点简介2-3句", "ticket": "门票", "time": "建议游览时长", "stars": 4},
+    {"icon": "🌋", "name": "景点名称", "type": "景点类型", "desc": "景点简介2-3句", "ticket": "门票", "time": "建议游览时长", "stars": 4},
+    {"icon": "🎭", "name": "景点名称", "type": "景点类型", "desc": "景点简介2-3句", "ticket": "门票", "time": "建议游览时长", "stars": 4}
+  ],
+  "itinerary": [
+    {"day": "D1", "title": "行程标题", "activities": "具体活动安排，用→分隔各项", "tip": "当天小提示"},
+    {"day": "D2", "title": "行程标题", "activities": "具体活动安排，用→分隔各项", "tip": "当天小提示"},
+    {"day": "D3-4", "title": "行程标题", "activities": "具体活动安排，用→分隔各项", "tip": "当天小提示"},
+    {"day": "D5", "title": "行程标题", "activities": "具体活动安排，用→分隔各项", "tip": "当天小提示"}
+  ],
+  "foods": [
+    {"icon": "🍜", "name": "美食名称", "desc": "简介", "price": "价格参考"},
+    {"icon": "🥩", "name": "美食名称", "desc": "简介", "price": "价格参考"},
+    {"icon": "🍰", "name": "美食名称", "desc": "简介", "price": "价格参考"},
+    {"icon": "🥘", "name": "美食名称", "desc": "简介", "price": "价格参考"},
+    {"icon": "🍱", "name": "美食名称", "desc": "简介", "price": "价格参考"}
+  ],
+  "warnings": [
+    {"level": "danger", "title": "⚠️ 坑点标题", "desc": "详细说明", "tip": "✅ 正确做法"},
+    {"level": "danger", "title": "⚠️ 坑点标题", "desc": "详细说明", "tip": "✅ 正确做法"},
+    {"level": "caution", "title": "⚠️ 注意事项标题", "desc": "详细说明", "tip": "✅ 正确做法"},
+    {"level": "caution", "title": "⚠️ 注意事项标题", "desc": "详细说明", "tip": "✅ 正确做法"},
+    {"level": "caution", "title": "⚠️ 注意事项标题", "desc": "详细说明", "tip": "✅ 正确做法"}
+  ],
+  "practical": {
+    "emergency": "当地紧急电话",
+    "voltage": "电压/插座",
+    "transport": "当地主要交通方式",
+    "payment": "支付方式",
+    "weather": "气候特点"
+  }
+}
+
+请基于真实数据，针对${style}风格和${duration}天行程给出合理的预算估算。行程安排根据天数合理分配。`;
+
+    const payload = {
+        contents: [{ parts: [{ text: prompt }] }],
+        tools: [{ "google_search": {} }],
+        generationConfig: { temperature: 0.3 }
+    };
+
+    try {
+        const { text } = await callGeminiAPI(payload);
+        // Parse JSON from response
+        let jsonStr = text;
+        const m = text.match(/```(?:json)?\s*([\s\S]+?)```/);
+        if (m) jsonStr = m[1];
+        const jsonStart = jsonStr.indexOf('{');
+        const jsonEnd = jsonStr.lastIndexOf('}');
+        if (jsonStart !== -1 && jsonEnd !== -1) jsonStr = jsonStr.slice(jsonStart, jsonEnd + 1);
+
+        let data;
+        try { data = JSON.parse(jsonStr); }
+        catch(e) {
+            // Fallback: try to fix common JSON issues
+            jsonStr = jsonStr.replace(/,\s*}/g, '}').replace(/,\s*]/g, ']');
+            try { data = JSON.parse(jsonStr); }
+            catch(e2) { throw new Error("AI 返回格式有误，请重试"); }
+        }
+
+        renderReport(data, destination, duration, travelers, style);
+    } catch (err) {
+        document.getElementById('deepReport').innerHTML = `
+            <div class="bg-white rounded-2xl p-8 text-center shadow-xl">
+                <p class="text-red-500 font-medium text-lg">⚠️ ${err.message}</p>
+                <p class="text-gray-400 text-sm mt-2">请检查 API Key 配置或稍后重试</p>
+            </div>`;
+    } finally {
+        document.getElementById('deepLoading').classList.add('hidden');
+        btn.disabled = false;
+    }
+}
+
+function renderReport(data, destination, duration, travelers, style) {
+    const report = document.getElementById('deepReport');
+
+    // ── Hero banner
+    const ov = data.overview || {};
+    report.innerHTML = `
+    <div class="rounded-2xl overflow-hidden shadow-xl mb-4" style="background: linear-gradient(135deg, #1a3a5c, #4f46e5);">
+        <div class="p-8 text-white text-center">
+            <div class="text-5xl mb-3">🌍</div>
+            <h2 class="text-3xl font-extrabold mb-2">${ov.destination || destination} 旅游分析</h2>
+            <p class="opacity-80 mb-4">${ov.summary || ''}</p>
+            <div class="flex flex-wrap gap-2 justify-center">
+                <span class="px-3 py-1 rounded-full text-sm font-semibold" style="background:rgba(255,255,255,0.2)">📅 ${duration}天</span>
+                <span class="px-3 py-1 rounded-full text-sm font-semibold" style="background:rgba(255,255,255,0.2)">👥 ${travelers}人</span>
+                <span class="px-3 py-1 rounded-full text-sm font-semibold" style="background:rgba(255,255,255,0.2)">🏨 ${style}</span>
+                <span class="px-3 py-1 rounded-full text-sm font-semibold" style="background:rgba(255,255,255,0.2)">📅 最佳季节: ${ov.bestSeason || '—'}</span>
+                <span class="px-3 py-1 rounded-full text-sm font-semibold" style="background:rgba(255,255,255,0.2)">💰 ${ov.currency || '—'}</span>
+                <span class="px-3 py-1 rounded-full text-sm font-semibold" style="background:rgba(255,255,255,0.2)">🛂 ${ov.visa || '—'}</span>
+            </div>
+        </div>
+    </div>`;
+
+    // ── Metric mini cards
+    const bgt = data.budget || {};
+    const total = bgt.total ? `¥${Number(bgt.total).toLocaleString()}` : '—';
+    const daily = bgt.dailyAvg ? `¥${Number(bgt.dailyAvg).toLocaleString()}` : '—';
+    report.innerHTML += `
+    <div class="grid grid-cols-3 gap-3 mb-4">
+        <div class="metric-mini"><div class="value">${total}</div><div class="label">总预算估算</div></div>
+        <div class="metric-mini"><div class="value">${daily}</div><div class="label">日均花费</div></div>
+        <div class="metric-mini"><div class="value">${(data.attractions||[]).length}</div><div class="label">推荐景点</div></div>
+    </div>`;
+
+    // ── Budget section
+    if (bgt.items && bgt.items.length > 0) {
+        let rows = bgt.items.map(i => `<tr><td>${i.name}</td><td class="font-semibold text-indigo-700">${i.amount}</td><td class="text-gray-500">${i.note}</td></tr>`).join('');
+        const totalAmt = bgt.items.reduce((sum, i) => {
+            const n = parseFloat((i.amount||'').replace(/[^0-9.]/g,'')) || 0;
+            return sum + n;
+        }, 0);
+        rows += `<tr><td class="font-bold">💰 合计</td><td class="font-bold text-red-600 text-lg">${total}</td><td class="text-gray-500">${duration}天·${travelers}人</td></tr>`;
+
+        const tips = (bgt.tips||[]).map(t => `<li class="text-sm text-indigo-800">💡 ${t}</li>`).join('');
+        report.innerHTML += `
+        <div class="report-section">
+            <div class="report-section-header" style="background:linear-gradient(90deg,#eef2ff,#e0e7ff);">
+                <span>💴</span><span style="color:#3730a3">详细费用预算</span>
+            </div>
+            <div class="report-section-body">
+                <table class="budget-table"><thead><tr><th>费用项目</th><th>金额</th><th>说明</th></tr></thead><tbody>${rows}</tbody></table>
+                ${tips ? `<ul class="mt-4 space-y-1 bg-indigo-50 rounded-lg p-4">${tips}</ul>` : ''}
+            </div>
+        </div>`;
+    }
+
+    // ── Attractions
+    if (data.attractions && data.attractions.length > 0) {
+        const cards = data.attractions.map(a => `
+        <div class="attraction-card">
+            <div class="attraction-card-header">
+                <div class="text-2xl">${a.icon||'📍'}</div>
+                <div class="ml-2">
+                    <div class="font-bold">${a.name}</div>
+                    <div class="text-xs opacity-75">${a.type||''}</div>
+                </div>
+                <div class="ml-auto text-yellow-300">${'★'.repeat(a.stars||4)}${'☆'.repeat(5-(a.stars||4))}</div>
+            </div>
+            <div class="attraction-card-body text-gray-600">
+                <p class="mb-3">${a.desc||''}</p>
+                <div class="flex flex-wrap gap-2">
+                    <span class="px-2 py-1 rounded-full text-xs font-semibold bg-yellow-100 text-yellow-800">💰 ${a.ticket||'免费'}</span>
+                    <span class="px-2 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-800">⏱️ ${a.time||'—'}</span>
+                </div>
+            </div>
+        </div>`).join('');
+        report.innerHTML += `
+        <div class="report-section">
+            <div class="report-section-header" style="background:linear-gradient(90deg,#f0fdf4,#dcfce7);">
+                <span>🏔️</span><span style="color:#166534">必游景点推荐</span>
+            </div>
+            <div class="report-section-body">
+                <div class="attraction-grid">${cards}</div>
+            </div>
+        </div>`;
+    }
+
+    // ── Itinerary
+    if (data.itinerary && data.itinerary.length > 0) {
+        const days = data.itinerary.map(d => `
+        <div class="itin-row">
+            <div class="itin-day-badge"><div class="itin-day-circle">${d.day||'D?'}</div></div>
+            <div class="itin-content">
+                <strong>${d.title||''}</strong><br>
+                ${(d.activities||'').split('→').map(a => a.trim()).filter(Boolean).join(' → ')}
+                ${d.tip ? `<div class="mt-2 text-xs text-gray-400 italic">💡 ${d.tip}</div>` : ''}
+            </div>
+        </div>`).join('');
+        report.innerHTML += `
+        <div class="report-section">
+            <div class="report-section-header" style="background:linear-gradient(90deg,#eff6ff,#dbeafe);">
+                <span>🗓️</span><span style="color:#1e40af">推荐行程安排</span>
+            </div>
+            <div class="report-section-body">${days}</div>
+        </div>`;
+    }
+
+    // ── Foods
+    if (data.foods && data.foods.length > 0) {
+        const pills = data.foods.map(f => `
+        <div class="bg-white rounded-xl p-4 border border-amber-200 text-center">
+            <div class="text-3xl mb-2">${f.icon||'🍽️'}</div>
+            <div class="font-bold text-gray-800 text-sm">${f.name||''}</div>
+            <div class="text-xs text-gray-500 mt-1 mb-2">${f.desc||''}</div>
+            <div class="text-xs font-semibold text-amber-700 bg-amber-50 rounded-full px-3 py-1">${f.price||'—'}</div>
+        </div>`).join('');
+        report.innerHTML += `
+        <div class="report-section">
+            <div class="report-section-header" style="background:linear-gradient(90deg,#fffbeb,#fef3c7);">
+                <span>🍽️</span><span style="color:#92400e">必吃美食推荐</span>
+            </div>
+            <div class="report-section-body">
+                <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">${pills}</div>
+            </div>
+        </div>`;
+    }
+
+    // ── Warnings
+    if (data.warnings && data.warnings.length > 0) {
+        const items = data.warnings.map(w => `
+        <div class="warn-item">
+            <div class="warn-strip" style="background:${w.level==='danger'?'#ef4444':'#f59e0b'}"></div>
+            <div class="warn-content">
+                <div class="font-bold text-gray-800 mb-1">${w.title||'⚠️ 注意'}
+                    <span class="ml-2 text-xs px-2 py-0.5 rounded-full font-semibold" style="background:${w.level==='danger'?'#fee2e2':'#fef3c7'};color:${w.level==='danger'?'#dc2626':'#d97706'}">${w.level==='danger'?'高危':'注意'}</span>
+                </div>
+                <p class="text-sm text-gray-600 mb-2">${w.desc||''}</p>
+                <p class="text-sm font-semibold text-green-700">${w.tip||''}</p>
+            </div>
+        </div>`).join('');
+        report.innerHTML += `
+        <div class="report-section">
+            <div class="report-section-header" style="background:linear-gradient(90deg,#fff1f2,#ffe4e6);">
+                <span>🚨</span><span style="color:#991b1b">避雷攻略 — 不白花一分钱</span>
+            </div>
+            <div class="report-section-body">${items}</div>
+        </div>`;
+    }
+
+    // ── Practical info
+    const pr = data.practical || {};
+    if (Object.keys(pr).length > 0) {
+        const infoItems = [
+            {label:'🚨 紧急电话', val: pr.emergency},
+            {label:'⚡ 电压/插座', val: pr.voltage},
+            {label:'🚌 交通方式', val: pr.transport},
+            {label:'💳 支付方式', val: pr.payment},
+            {label:'🌤️ 气候特点', val: pr.weather}
+        ].filter(i => i.val).map(i => `
+        <div class="bg-white rounded-xl p-4 border border-gray-200">
+            <div class="text-xs font-semibold text-gray-500 mb-1">${i.label}</div>
+            <div class="text-sm text-gray-800">${i.val}</div>
+        </div>`).join('');
+        report.innerHTML += `
+        <div class="report-section">
+            <div class="report-section-header" style="background:linear-gradient(90deg,#f8fafc,#f1f5f9);">
+                <span>📋</span><span style="color:#334155">实用旅行信息</span>
+            </div>
+            <div class="report-section-body">
+                <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">${infoItems}</div>
+            </div>
+        </div>`;
+    }
+
+    // Footer
+    report.innerHTML += `
+    <div class="text-center text-gray-400 text-xs py-4">
+        🌍 旅游分析报告 · 由 AI 生成 · 数据仅供参考，出行前请以最新官方信息为准
+    </div>`;
+}
+
+// ============================================================
+// INIT
+// ============================================================
+window.onload = () => { populateCountries(); };
+</script>
+</body>
+</html>
